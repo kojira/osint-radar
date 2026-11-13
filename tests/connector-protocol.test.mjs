@@ -1,0 +1,20 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { invocationSchema, grantsSchema, sessionOptionsSchema, driverMessageSchema } from "../scripts/connector-preview/protocol.mjs";
+test("connector protocol keeps strict envelopes and arbitrary JSON argument values", () => {
+  const request = {connectorId:"example", actionName:"read", arguments:{text:"ok", nested:{value:1}, list:[true], empty:null}};
+  assert.deepEqual(invocationSchema.parse(request), request);
+  assert.equal(invocationSchema.safeParse({...request, accountId:"unexpected"}).success, false);
+  assert.equal(invocationSchema.safeParse({...request, arguments:[]}).success, false);
+  assert.equal(invocationSchema.safeParse({...request, connectorId:"bad/name"}).success, false);
+  assert.equal(grantsSchema.safeParse([{connectorId:"example",actionName:"read",readOnly:false}]).success, false);
+  assert.deepEqual(sessionOptionsSchema.parse({}), {timeoutMs:120000,maxConcurrent:64});
+  assert.equal(sessionOptionsSchema.safeParse({timeoutMs:0}).success, false);
+  assert.equal(sessionOptionsSchema.safeParse({maxConcurrent:1.5}).success, false);
+  assert.equal(sessionOptionsSchema.safeParse({lifetimeMs:2**31}).success, false);
+  assert.equal(sessionOptionsSchema.safeParse({unexpected:true}).success, false);
+  const response = {jsonrpc:"2.0",id:"00000000-0000-4000-8000-000000000000",result:{content:[],isError:false}};
+  assert.deepEqual(driverMessageSchema.parse(response),response);
+  assert.equal(driverMessageSchema.safeParse({...response,extra:true}).success,false);
+  assert.equal(driverMessageSchema.safeParse({...response,id:"invalid"}).success,false);
+});
