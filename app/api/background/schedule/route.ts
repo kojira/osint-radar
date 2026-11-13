@@ -1,0 +1,3 @@
+import { writeSetting } from "../../../../lib/background";
+export const dynamic="force-dynamic";
+export async function POST(request:Request){try{const v=await request.json() as {automationId?:string;intervalMinutes?:number;timezone?:string};if(typeof v.automationId!=="string"||!v.automationId||typeof v.intervalMinutes!=="number"||v.intervalMinutes<60||typeof v.timezone!=="string")return Response.json({error:"登録済みスケジュールの情報が必要です"},{status:400});const schedule={automationId:v.automationId,intervalMinutes:v.intervalMinutes,timezone:v.timezone,registeredAt:new Date().toISOString()};await writeSetting("schedule",schedule);return Response.json({ok:true,schedule})}catch{return Response.json({error:"スケジュール情報を保存できませんでした"},{status:500})}}
